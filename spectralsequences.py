@@ -361,6 +361,9 @@ INPUT:
 
 """
 def pull_a2_gcd(R, d):
+  R.inject_variables()
+  d = dict_map(special_str, d)
+  d = dict_map(eval, d)
   one = R.one()
   keys = d.keys()
   vals = d.values()
@@ -377,7 +380,12 @@ def pull_a2_gcd(R, d):
   else:
     raise ValueError('Stuff went wrong')
 
+special_str = lambda x: str(x).replace('^', '**')
+
 """
+Note: this comment was for the deprecated version of boundaries; may not be
+accurate with output format.
+
 Calculates the boundaries of the Ap-module representation of a CDGA
 
 INPUT:
@@ -401,12 +409,169 @@ EXAMPLE:
 
 """
 def boundaries(A):
+  diff = ap_differential(A)
+  diff_matrix = ap_differential_matrix(A)
+  combs = gen_combs(A)
+  length = len(diff_matrix)
+  totdiff = []
+  for d in diff_matrix:
+    totdiff += d
+  R = polynomial_ring_of(A)
+  M = MatrixSpace(R, length, length)
+  totdiff = map(special_str, totdiff)
+  R.inject_variables()
+  totdiff = map(eval, totdiff)
+  m = M(totdiff)
+  column_indices = m.pivots()
+  ap_gcd_with_Ring = partial(pull_a2_gcd, R)
+  image = []
+  for index in column_indices:
+    index = int(str(index))
+    A.inject_variables()
+    image.append(ap_gcd_with_Ring(diff[combs[index]]))
+  f = lambda d: reduce(lambda a, b: a+b, map(lambda (k, v): k * v, d.items()))
+  g = lambda (l, r): (l, f(r))
+  image = map(g, image)
+  image = map(lambda (x, y): (special_str(x), special_str(y)), image)
+  A.inject_variables()
+  for i in range(0, len(image)):
+    a = []
+    for j in range(0, len(image[i])):
+      a.append(eval(image[i][j]))
+    image[i] = tuple(a)
+  return image
+
+"""
+Prints a nicely-formatted version of the boundaries.
+
+EXAMPLE: (with prior algebra)
+
+print_boundaries(A) -> y^2*A2{1} \oplus 1*A2{y}
+
+"""
+def print_boundaries(A):
+  p = str(A.base_ring())[-1:]
+  bnds = boundaries(A)
+  ap = lambda (o, i): str(o) + '*A' + p + '{' + str(i) + '}'
+  bnds = map(ap, bnds)
+  dir_sum = lambda a, b: a + u' \u2295 ' + b
+  print reduce(dir_sum, bnds)
+
+
+# Incomplete; intended for cycles function
+def diff_as_primes(A):
+  R = polynomial_ring_of(A)
+  R.inject_variables()
+  diff = ap_differential_matrix(A)
+  diff = map(lambda x: map(special_str, x), diff)
+  diff = map(lambda x: map(eval, x), diff)
+  primediff = []
+  for lst in diff:
+    primediff += lst
+  t = A.gens()
+  t = map(special_str, t)
+  t = map(eval, t)
+  gens = map(lambda x: x**2, t)
+  d = {}
+  P = Primes()
+  for i in range(0, len(gens)):
+    d[gens[i]] = int(P.unrank(i))
+  for i in range(0, len(primediff)):
+    ac = 1
+    for gen in gens:
+      while True:
+        if primediff[i] == 0 or primediff[i] == 1:
+          break
+        else:
+          g = gcd(gen, primediff[i])
+          if g == gen:
+            primediff[i] /= g
+            ac *= d[gen]
+          else:
+            break
+    primediff[i] = ac
+  return primediff
+### TODO: cycles of the algebra
+def cycles(A):
+  return None
+
+
+
+"""
+Cohomology functions run on the assumption that the boundaries are subsets
+of the cycles (which we haven't yet defined a function to generate)
+
+"""
+def cyclic_cohomology_decomp(A):
+  return None
+
+
+def print_cyclic_cohomology(A):
+  p = str(A.base_ring())[-1:]
+  bnds = boundaries(A)
+  ap = lambda (o, i): 'A' + p + '{' + str(i) + '}/' + str(o)
+  bnds = map(ap, bnds)
+  dir_sum = lambda a, b: a + u' \u2295 ' + b
+  print reduce(dir_sum, bnds)
+
+
+def main():
+  # May Example
+  # Generators
+  """
+  h10 = Variable('h10', 1, 0)
+  h11 = Variable('h11', 1, 1)
+  h12 = Variable('h12', 1, 2)
+  h20 = Variable('h20', 2, 0)
+  h21 = Variable('h21', 2, 1)
+  h30 = Variable('h30', 3, 0)
+  gens = [h10, h11, h12, h20, h21, h30]
+  # Defines an algebra
+  A = define_algebra(2, gens, (1,1,1,1,1,1))
+  d = first_diff(gens)
+  d = parse_diffs(A, d)
+  B = define_cdga(A, d)
+  #boundaries(B)
+  #print_ap_differential_matrix(B)
+  #print B
+  #print B.cohomology_generators(6)
+  #print_cyclic_cohomology(B)
+  """
+  # Simple Example
+  #A = GradedCommutativeAlgebra(GF(2), 'x,y', degrees=(1,2))
+  #A.inject_variables()
+  #B = A.cdg_algebra({x:y})
+  #print ap_differential_matrix(B)
+
+  # Not-so-simple Example
+  A = GradedCommutativeAlgebra(GF(2), 'x,y,z', degrees=(1,2,3))
+  A.inject_variables()
+  B = A.cdg_algebra({x:y, z:y**2})
+  #print ap_differential(B)
+  print_boundaries(B)
+  #print_boundaries(B)
+  print_ap_differential_matrix(B)
+  #print_cyclic_cohomology(B)
+  #print B
+  #print_ap_differential_matrix(B)
+  #print boundaries(B)
+  #print B.cohomology_generators(10)
+
+
+
+if __name__ == "__main__":
+  main()
+
+
+"""
+DEPRECATED BOUNDARIES FUNCTION
+
+def boundaries(A):
   res = []
   diff = ap_differential(A).values()
   for val in diff:
     if val != {0: 0}:
       res.append(val)
-  special_str = lambda x: str(x).replace('^', '**')
   dict_str = partial(dict_map, special_str)
   res = map(dict_str, res)
   R = polynomial_ring_of(A)
@@ -419,8 +584,13 @@ def boundaries(A):
     length = len(res)
     for i in range(0, length):
       for j in range(i + 1, length):
+        #print res
+        print i*length + j
         if res[i][1] == res[j][1]:
+          #print res
+          print 'inside'
           g = gcd(res[i][0], res[j][0])
+          print g
           if g == res[i][0]:
             del res[j]
           elif g == res[j][0]:
@@ -445,64 +615,4 @@ def boundaries(A):
       a.append(eval(res[i][j]))
     res[i] = tuple(a)
   return res
-
 """
-Prints a nicely-formatted version of the boundaries.
-
-EXAMPLE: (with prior algebra)
-
-print_boundaries(A) -> y^2*A2{1} \oplus 1*A2{y}
-
-"""
-def print_boundaries(A):
-  p = str(A.base_ring())[-1:]
-  bnds = boundaries(A)
-  ap = lambda (o, i): str(o) + '*A' + p + '{' + str(i) + '}'
-  bnds = map(ap, bnds)
-  dir_sum = lambda a, b: a + u' \u2295 ' + b
-  print reduce(dir_sum, bnds)
-
-
-
-
-def main():
-  # May Example
-  # Generators
-  #h10 = Variable('h10', 1, 0)
-  #h11 = Variable('h11', 1, 1)
-  #h12 = Variable('h12', 1, 2)
-  #h20 = Variable('h20', 2, 0)
-  #h21 = Variable('h21', 2, 1)
-  #h30 = Variable('h30', 3, 0)
-  #gens = [h10, h11, h12, h20, h21, h30]
-  # Defines an algebra
-  #A = define_algebra(2, gens, (1,1,1,1,1,1))
-  #d = first_diff(gens)
-  #d = parse_diffs(A, d)
-  #B = define_cdga(A, d)
-  #print_ap_differential_matrix(B)
-  #print B
-  #print B.cohomology_generators(6)
-
-  # Simple Example
-  #A = GradedCommutativeAlgebra(GF(2), 'x,y', degrees=(1,2))
-  #A.inject_variables()
-  #B = A.cdg_algebra({x:y})
-  #print ap_differential_matrix(B)
-
-  # Not-so-simple Example
-  A = GradedCommutativeAlgebra(GF(2), 'x,y,z', degrees=(1,2,3))
-  A.inject_variables()
-  B = A.cdg_algebra({x:y, z:y**2})
-  print ap_differential(B)
-  print boundaries(B)
-  print_boundaries(B)
-  #print B
-  #print_ap_differential_matrix(B)
-  #print boundaries(B)
-  #print B.cohomology_generators(10)
-
-
-
-if __name__ == "__main__":
-  main()
