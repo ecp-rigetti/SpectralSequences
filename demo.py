@@ -3,11 +3,21 @@ from functools import *
 import itertools
 
 
+#TODO: Lump this all into a single "Page" class
+
+
+#Gradings taken from Ravenel
 class Variable:
   def __init__(self, name, i, j):
     self.name = name
     self.i = i
     self.j = j
+    #First grading
+    self.s = 1
+    #Second grading
+    self.t = (2**j) * (2**i - 1)
+    #May filtration grading (?)
+    self.u = i
 
 
 """
@@ -503,7 +513,13 @@ of the cycles (which we haven't yet defined a function to generate)
 
 """
 def cyclic_cohomology_decomp(A):
-  return None
+  bnds = boundaries(A)
+  antibnds = filter(lambda (x,y): x == 1, bnds)
+  bnds = filter(lambda (x, y): x != 1, bnds)
+  print 'Boundaries:'
+  print bnds
+  print '\"Anti-Boundaries\"'
+  print antibnds
 
 
 def print_cyclic_cohomology(A):
@@ -518,7 +534,7 @@ def print_cyclic_cohomology(A):
 def main():
   # May Example
   # Generators
-  """
+
   h10 = Variable('h10', 1, 0)
   h11 = Variable('h11', 1, 1)
   h12 = Variable('h12', 1, 2)
@@ -526,6 +542,7 @@ def main():
   h21 = Variable('h21', 2, 1)
   h30 = Variable('h30', 3, 0)
   gens = [h10, h11, h12, h20, h21, h30]
+  #gens = [h10, h11, h20]
   # Defines an algebra
   A = define_algebra(2, gens, (1,1,1,1,1,1))
   d = first_diff(gens)
@@ -533,29 +550,39 @@ def main():
   B = define_cdga(A, d)
   #boundaries(B)
   #print_ap_differential_matrix(B)
-  #print B
+  print B
   #print B.cohomology_generators(6)
-  #print_cyclic_cohomology(B)
-  """
+
+  #cyclic_cohomology_decomp(B)
+  #print B.cohomology_generators(5)
+
+  print B.cohomology_generators(6)
+
+  print ap_differential(B)
+
+  #print ap_differential_matrix(B)
+
   # Simple Example
   #A = GradedCommutativeAlgebra(GF(2), 'x,y', degrees=(1,2))
   #A.inject_variables()
   #B = A.cdg_algebra({x:y})
   #print ap_differential_matrix(B)
 
+  """
   # Not-so-simple Example
   A = GradedCommutativeAlgebra(GF(2), 'x,y,z', degrees=(1,2,3))
   A.inject_variables()
   B = A.cdg_algebra({x:y, z:y**2})
   #print ap_differential(B)
-  print_boundaries(B)
   #print_boundaries(B)
-  print_ap_differential_matrix(B)
-  #print_cyclic_cohomology(B)
+  #print_boundaries(B)
+  #print_ap_differential_matrix(B)
+  print_cyclic_cohomology(B)
   #print B
   #print_ap_differential_matrix(B)
   #print boundaries(B)
   #print B.cohomology_generators(10)
+  """
 
 
 
