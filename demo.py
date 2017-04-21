@@ -542,25 +542,34 @@ def main():
   h21 = Variable('h21', 2, 1)
   h30 = Variable('h30', 3, 0)
   gens = [h10, h11, h12, h20, h21, h30]
-  #gens = [h10, h11, h20]
+  # gens = [h10, h11, h20]
   # Defines an algebra
   A = define_algebra(2, gens, (1,1,1,1,1,1))
+  # A = GradedCommutativeAlgebra(GF(2), 'x,y,z', (1,1,2))
   d = first_diff(gens)
   d = parse_diffs(A, d)
   B = define_cdga(A, d)
+
+  print_boundaries(B)
+
+
+
+
   #boundaries(B)
   #print_ap_differential_matrix(B)
-  print B
+  # print_ap_differential_matrix(B)
   #print B.cohomology_generators(6)
 
   #cyclic_cohomology_decomp(B)
   #print B.cohomology_generators(5)
 
-  print B.cohomology_generators(6)
+  # print ap_differential(B)
 
-  print ap_differential(B)
-
-  #print ap_differential_matrix(B)
+  # print_boundaries(B)
+  # print ""
+  # print_cyclic_cohomology(B)
+  # print cyclic_cohomology_decomp(B)
+  # print B.cohomology_generators(5)
 
   # Simple Example
   #A = GradedCommutativeAlgebra(GF(2), 'x,y', degrees=(1,2))
