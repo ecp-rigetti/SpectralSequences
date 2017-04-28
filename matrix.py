@@ -3,10 +3,12 @@ from demo import *
 
 
 class Matrix:
-  def __init__(self, R, m):
+  def __init__(self, R, m, A):
     self.base_ring = R
     self.matrix = matrix(m)
+    self.algebra = A
 
+  # Polynomial matrix kernels, brought to you by the magic of syzygies
   def syzygy_kernel_test(self):
     lm = list(self.matrix)
     lm = map(lambda x: Ideal(list(x)).syzygy_module().transpose(), lm)
@@ -24,21 +26,49 @@ class Matrix:
     macaulay2.set('I', 'gens intersect ' + modules)
     # I = macaulay2.get('I')
     I = macaulay2('I').to_sage()
-    print I.str()
+    # print I.str()
     return I
-    """
-    columns = []
-    i = 0
-    while True:
-      try:
-        columns.append(macaulay2('I^{%d}' % i))
-        print columns[i]
-        i += 1
-      except TypeError:
-        break
-    print len(columns)
-    return I
-    """
+
+  def kernel(self):
+    gens = vector(gen_combs(self.base_ring))
+    columns = self.syzygy_kernel_test().columns()
+    return map(lambda c: gens.dot_product(c), columns)
+
+  def test_homology(self):
+    cycles = self.kernel()
+    bounds = self.test_boundaries()
+    cycles = map(special_str, cycles)
+    bounds = map(special_str, bounds)
+    self.algebra.inject_variables()
+    print cycles
+    cycles = map(eval, cycles)
+    bounds = map(eval, bounds)
+    # print boundaries(self.algebra)
+    # bounds = map(lambda x: x[1], boundaries(self.algebra))
+    print "both"
+    both = list(set(cycles) & set(bounds))
+    print len(both)
+    print both
+    print "cycles"
+    print len(cycles)
+    print cycles
+    # print self.algebra.differential()(eval(special_str(cycles[36])))
+    print "boundaries"
+    print len(bounds)
+    print bounds
+
+  def test_boundaries(self):
+    lm = list(self.matrix)
+    lm = map(list, lm)
+    f = lambda lst: str(lst).replace('[', '{').replace(']','}')
+    lm = f(lm)
+    macaulay2.set('R', 'GF(2)' + str(list(self.base_ring.gens())))
+    macaulay2.set('i', 'gens trim trim image matrix (R,' + lm + ')')
+    i = macaulay2('i').to_sage()
+    gens = vector(gen_combs(self.base_ring))
+    columns = i.columns()
+    return map(lambda c: gens.dot_product(c), columns)
+
 
 
 def main():
@@ -61,12 +91,20 @@ def main():
   d = parse_diffs(A,d)
   B = define_cdga(A,d)
   m = ap_differential_matrix(B)
-  print_ap_differential_matrix(B)
+  # print_ap_differential_matrix(B)
   R = polynomial_ring_of(A)
   R.inject_variables()
   m = map(lambda x: map(lambda y: eval(special_str(y)), x), m)
-  M = Matrix(R,m)
-  a = M.syzygy_kernel_test()
+  M = Matrix(R,m,B)
+  m = M.matrix
+
+  # a = M.syzygy_kernel_test()
+  # hopefully_zero = m * a
+  # print hopefully_zero.str()
+
+  # M.test_homology()
+  bounds = M.test_homology()
+
 
 
 if __name__ == "__main__":
