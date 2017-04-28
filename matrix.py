@@ -1,7 +1,7 @@
 from sage.all import *
 from demo import *
 
-###Dear God have mercy on my soul for attempting this###
+
 class Matrix:
   def __init__(self, R, m):
     self.base_ring = R
@@ -21,15 +21,24 @@ class Matrix:
       macaulay2.set('x%d' % i, 'image matrix (R,' + lm[i] + ')')
     macaulay2.get('x1')
     modules = str(modules).replace('[','{').replace(']','}').replace('\'', '')
-    macaulay2.set('I', 'intersect ' + modules)
-    print macaulay2('I_{1}')
+    macaulay2.set('I', 'gens intersect ' + modules)
+    # I = macaulay2.get('I')
+    I = macaulay2('I').to_sage()
+    print I.str()
     return I
-
-
-
-
-
-
+    """
+    columns = []
+    i = 0
+    while True:
+      try:
+        columns.append(macaulay2('I^{%d}' % i))
+        print columns[i]
+        i += 1
+      except TypeError:
+        break
+    print len(columns)
+    return I
+    """
 
 
 def main():
