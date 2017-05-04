@@ -1,5 +1,6 @@
 from sage.all import *
 from functools import *
+from matrix import *
 import itertools
 
 
