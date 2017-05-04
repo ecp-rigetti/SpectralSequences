@@ -34,40 +34,25 @@ class Matrix:
     columns = self.syzygy_kernel_test().columns()
     return map(lambda c: gens.dot_product(c), columns)
 
-  def test_homology(self):
-    cycles = self.kernel()
-    bounds = self.test_boundaries()
-    cycles = map(special_str, cycles)
-    bounds = map(special_str, bounds)
-    self.algebra.inject_variables()
-    print cycles
-    cycles = map(eval, cycles)
-    bounds = map(eval, bounds)
-    # print boundaries(self.algebra)
-    # bounds = map(lambda x: x[1], boundaries(self.algebra))
-    print "both"
-    both = list(set(cycles) & set(bounds))
-    print len(both)
-    print both
-    print "cycles"
-    print len(cycles)
-    print cycles
-    # print self.algebra.differential()(eval(special_str(cycles[36])))
-    print "boundaries"
-    print len(bounds)
-    print bounds
-
   def test_boundaries(self):
     lm = list(self.matrix)
     lm = map(list, lm)
     f = lambda lst: str(lst).replace('[', '{').replace(']','}')
     lm = f(lm)
     macaulay2.set('R', 'GF(2)' + str(list(self.base_ring.gens())))
-    macaulay2.set('i', 'gens trim trim image matrix (R,' + lm + ')')
+    macaulay2.set('i', 'gens trim image matrix (R,' + lm + ')')
     i = macaulay2('i').to_sage()
     gens = vector(gen_combs(self.base_ring))
     columns = i.columns()
     return map(lambda c: gens.dot_product(c), columns)
+
+  def test_homology(self):
+    cycles = self.kernel()
+    bounds = self.test_boundaries()
+    I = self.base_ring.ideal(cycles)
+    print I.reduce(bounds[0])
+
+
 
 
 
@@ -101,9 +86,7 @@ def main():
   # a = M.syzygy_kernel_test()
   # hopefully_zero = m * a
   # print hopefully_zero.str()
-
-  # M.test_homology()
-  bounds = M.test_homology()
+  M.test_homology()
 
 
 
