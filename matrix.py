@@ -50,7 +50,57 @@ class Matrix:
     cycles = self.kernel()
     bounds = self.test_boundaries()
     I = self.base_ring.ideal(cycles)
-    print I.reduce(bounds[0])
+    reduced = map(I.reduce, bounds)
+    print reduced
+
+  # Computational Commutative Algebra, 71
+  # Thm 1.6.4
+  # monomial_reduce gives us LM(v)/LM(g_i), g_i
+  def polynomial_reduction(self, elt):
+    R = self.base_ring
+    G = self.kernel()
+    s = len(G)
+    q = [0] * s
+    p = 0
+    v = elt
+    while True:
+      while True:
+        lm_v = v.lm()
+        for g in G:
+          g_lm = g.lm()
+          try:
+            if R.monomial_divides(g_lm, lm_v):
+              r = R.monomial_quotient(lm_v, g_lm)
+              l = None
+              try:
+                l = r.exponents()[0]
+              except IndexError:
+                continue
+              degs = list(l)
+              evens = map(lambda x: x % 2 == 0, degs)
+              alleven = reduce(lambda a, b: a and b, evens)
+              if alleven:
+                i = G.index(g)
+                q[i] += r
+                v -= (r * g)
+                break
+          except ZeroDivisionError:
+            continue
+        else:
+          break
+      p += v.lm()
+      v -= v.lm()
+      if v == 0:
+        break
+    return (q, p)
+
+  def all_reduce(self):
+    bounds = self.test_boundaries()
+    return map(self.polynomial_reduction, bounds)
+
+
+
+
 
 
 
@@ -86,7 +136,7 @@ def main():
   # a = M.syzygy_kernel_test()
   # hopefully_zero = m * a
   # print hopefully_zero.str()
-  M.test_homology()
+  print M.all_reduce()
 
 
 
