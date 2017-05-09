@@ -29,11 +29,13 @@ class Matrix:
     # print I.str()
     return I
 
+  # Generates cycles of the differential
   def kernel(self):
     gens = vector(gen_combs(self.base_ring))
     columns = self.syzygy_kernel_test().columns()
     return map(lambda c: gens.dot_product(c), columns)
 
+  # Generates boundaries of the differential
   def test_boundaries(self):
     lm = list(self.matrix)
     lm = map(list, lm)
@@ -46,6 +48,7 @@ class Matrix:
     columns = i.columns()
     return map(lambda c: gens.dot_product(c), columns)
 
+  # Not useful
   def test_homology(self):
     cycles = self.kernel()
     bounds = self.test_boundaries()
@@ -56,6 +59,7 @@ class Matrix:
   # Computational Commutative Algebra, 71
   # Thm 1.6.4
   # monomial_reduce gives us LM(v)/LM(g_i), g_i
+  # Not useful
   def polynomial_reduction(self, elt):
     R = self.base_ring
     G = self.kernel()
@@ -94,10 +98,15 @@ class Matrix:
         break
     return (q, p)
 
+  # Not useful
   def all_reduce(self):
     bounds = self.test_boundaries()
     return map(self.polynomial_reduction, bounds)
 
+  # Does some weird polynomial reduction on the list of kernel elements mod
+  # the kernel and boundary elements to magically produce a multiplicative
+  # generating set for the kernel (?)
+  # Maybe I should separate out the actual reduction step to clean up code?
   def reduce(self):
     ker = self.kernel()[1:]
     b = self.test_boundaries()
