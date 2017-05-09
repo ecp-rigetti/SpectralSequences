@@ -98,6 +98,49 @@ class Matrix:
     bounds = self.test_boundaries()
     return map(self.polynomial_reduction, bounds)
 
+  def reduce(self):
+    ker = self.kernel()[1:]
+    b = self.test_boundaries()
+    g = map(lambda x: x**2 , list(self.base_ring.gens()))
+    ker += g
+    G = ker + b
+    res = []
+    while True:
+      for i in range(0, len(ker)):
+        print ""
+        print ker
+        print i
+        p = 0
+        q = 0
+        v = ker[i]
+        print v
+        while True:
+          while True:
+            lm_v = v.lm()
+            r = self.base_ring.monomial_reduce(lm_v, G[:i] + G[i + 1:])
+            print r
+            if r == (0, 0):
+              break
+            else:
+              v -= (r[0] * r[1])
+              q += (r[0] * r[1])
+          p += v.lm()
+          v -= v.lm()
+          print p
+          if v == 0:
+            break
+        if p != 0:
+          ker[i] = p + q
+          G[i] = p
+        else:
+          del ker[i]
+          del G[i]
+          break
+      else:
+        break
+    return ker
+
+
 
 
 
@@ -136,7 +179,7 @@ def main():
   # a = M.syzygy_kernel_test()
   # hopefully_zero = m * a
   # print hopefully_zero.str()
-  print M.all_reduce()
+  print M.reduce()
 
 
 
