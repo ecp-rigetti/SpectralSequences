@@ -123,12 +123,16 @@ class Matrix:
               break
             else:
               v -= (r[0] * r[1])
+              # It seems that if we can't completely reduce it, we don't want
+              # to reduce it at all (for generating reasons? idk)
+              # So we save this just in case p != 0, to add back in
               q += (r[0] * r[1])
           p += v.lm()
           v -= v.lm()
           print p
           if v == 0:
             break
+        # I don't think this if case actually does anything
         if p != 0:
           ker[i] = p + q
           G[i] = p
