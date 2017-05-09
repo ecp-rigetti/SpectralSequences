@@ -106,28 +106,22 @@ class Matrix:
   # Does some weird polynomial reduction on the list of kernel elements mod
   # the kernel and boundary elements to magically produce a multiplicative
   # generating set for the kernel (?)
-  # Maybe I should separate out the actual reduction step to clean up code?
+  # Maybe I should separate (abstract) out the reduction step to clean up code?
   def reduce(self):
     ker = self.kernel()[1:]
     b = self.test_boundaries()
     g = map(lambda x: x**2 , list(self.base_ring.gens()))
     ker += g
     G = ker + b
-    res = []
     while True:
       for i in range(0, len(ker)):
-        print ""
-        print ker
-        print i
         p = 0
         q = 0
         v = ker[i]
-        print v
         while True:
           while True:
             lm_v = v.lm()
             r = self.base_ring.monomial_reduce(lm_v, G[:i] + G[i + 1:])
-            print r
             if r == (0, 0):
               break
             else:
@@ -138,7 +132,6 @@ class Matrix:
               q += (r[0] * r[1])
           p += v.lm()
           v -= v.lm()
-          print p
           if v == 0:
             break
         # I don't think this if case actually does anything
@@ -152,6 +145,40 @@ class Matrix:
       else:
         break
     return ker
+
+  # An attempt to find a minimal set of things we need to mod out by to define
+  # the next page of a spectral sequence
+  # For some reasons this sort of works
+  # Also gives another reason to abstract out the reduction code
+  def bounds_reduce(self):
+    b = self.test_boundaries()
+    while True:
+      for i in range(0, len(b)):
+        p = 0
+        q = 0
+        v = b[i]
+        while True:
+          while True:
+            lm_v = v.lm()
+            r = self.base_ring.monomial_reduce(lm_v, b[:i] + b[i + 1:])
+            if r == (0, 0):
+              break
+            else:
+              v -= (r[0] * r[1])
+              q += (r[0] * r[1])
+          p += v.lm()
+          v -= v.lm()
+          if v == 0:
+            break
+        if p != 0:
+          b[i] = p + q
+        else:
+          del b[i]
+          break
+      else:
+        break
+    return b
+
 
 
 
@@ -192,7 +219,8 @@ def main():
   # a = M.syzygy_kernel_test()
   # hopefully_zero = m * a
   # print hopefully_zero.str()
-  print M.reduce()
+  # print M.reduce()
+  print M.bounds_reduce()
 
 
 
