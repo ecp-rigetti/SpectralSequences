@@ -2,13 +2,17 @@
 Differential class for the mod 2 May spectral sequence
 
 """
+import sys
+import os
 from sage.all import *
 from functools import *
 from operator import attrgetter, methodcaller
+from copy import *
 
 
 class PolynomialException(Exception):
     pass
+
 
 
 # Defines a class for a variable
@@ -32,6 +36,7 @@ class Variable:
 
     def square_0(self):
         self.j += 1
+        self.name = 'h' + str(self.i) + str(self.j)
 
 # Defines a monomial of variables as a list of variables in the monomial
 class Monomial:
@@ -138,7 +143,10 @@ class Differential:
 
     # Parses a polynomial as a Sage Polynomial Ring element
     def parse_in_ring(self, poly):
+        # http://stackoverflow.com/a/8447352
+        sys.stdout = open(os.devnull, "w")
         self.base_ring.inject_variables()
+        sys.stdout = sys.__stdout__
         return eval(poly.str_rep())
 
     # Parses a Sage polynomial ring's element into one of my Polynomials
@@ -158,13 +166,13 @@ class Differential:
         p = map(expand_mon, p)
         def find(elt):
             try:
-                return next(var for var in self.all_gens[0] if var.monomials[0].vars[0].name == elt)
+                vr = next(var for var in self.all_gens[0] if var.name == elt)
+                return vr
             except StopIteration:
                 return zero_p
         p = map(lambda lst: map(find, lst), p)
         p = map(lambda lst: map(lambda elt: elt.monomials[0].vars[0], lst), p)
         p = map(lambda lst: Monomial(lst), p)
-        print Polynomial(p).name
         return Polynomial(p)
 
     def poly_prod(self, p1, p2):
@@ -224,26 +232,31 @@ class Differential:
         if poly.is_monomial():
             mon = poly.monomials[0]
             if mon.is_variable():
+                named = map(lambda x: x.name, self.all_gens[0])
                 if n == 0:
-                    print mon.name
-                    print mon.vars[0].name
-                    mon.vars[0].square_0()
-                    t = Polynomial([Monomial([mon.vars[0]])])
-                    return t if t in self.all_gens[0] else zero_p
+                    # Need to copy this object, otherwise we're modifying important stuff
+                    new = deepcopy(mon.vars[0])
+                    new.square_0()
+                    t = Polynomial([Monomial([new])])
+                    if t.name in named:
+                        return t
+                    else:
+                        return zero_p
                 elif n == 1:
-                    t = mon.vars[0]
-                    return Polynomial([Monomial([t, t])])
+                    t = deepcopy(mon.vars[0])
+                    return Polynomial([Monomial([t, t])]) if Polynomial([Monomial([t])]).name in named else zero_p
                 else:
                     return zero_p
             else:
                 x, y = mon.vars[:1], mon.vars[1:]
                 x, y = Polynomial([Monomial(x)]), Polynomial([Monomial(y)])
                 ret = []
-                for i in range(0, n):
-                    ret += self.poly_prod(self.square_n(i, x), self.square_n(n - i, y))
+                for i in range(0, n + 1):
+                    ret += [self.poly_prod(self.square_n(i, x), self.square_n(n - i, y))]
+                print reduce(self.poly_sum, ret).str_rep()
                 return reduce(self.poly_sum, ret)
         else:
-            return reduce(self.poly_sum, map(lambda m: self.square_n(n, m), poly))
+            return reduce(self.poly_sum, map(lambda m: self.square_n(n, Polynomial([m])), poly.monomials))
 
     def square_term_differentials(self):
         diffs = {}
@@ -258,16 +271,14 @@ class Differential:
             unsquared = self.differential[gen]
             # Completely unfounded assumption that the squaring operator
             # splits over addition
-            print unsquared.name
             squared = self.square_n(1, unsquared)
-            diffs[squared_gen] = squared
+            diffs[squared_gen.name] = squared
         self.all_differentials.update(diffs)
 
 
     # Calculates the result of applying the rth May differential to a
     # Polynomial input; intended to be applied to the generators of a page
     def rth_diff(self, r, poly):
-        print poly.name
         if poly.is_monomial():
             mon = poly.monomials[0]
             # If it's just a single variable, it has to be something of form
@@ -285,24 +296,33 @@ class Differential:
                 return zero_p
             # Otherwise, it should be one of the squared terms
             else:
-                return self.all_differentials[poly]
-        # We otherwise have an unfortunate polynomial to deal with
+                return self.all_differentials[poly.name]
+        # We otherwise have an unfortunate multi-term polynomial to deal with
         else:
             if not any(map(lambda m: m.contains_h_1j(), poly.monomials)):
-                raise PolynomialException("You're basically screwed")
+                print "You're basically screwed"
             else:
+                # Not yet implemented
                 return zero_p
+
+    def rth_diff_on_gens(self, r):
+        def diff(gen):
+            return self.rth_diff(r, gen)
+        output = map(diff, self.gens)
+        d = {}
+        for i in range(0, len(output)):
+            d[self.gens[i]] = output[i]
+        return d
 
 
     def turn_page(self, gens, relations):
         self.page += 1
         self.relations += relations
         self.square_term_differentials()
-        self.gens = self.parse_to_poly_lst(gens)
+        self.gens = gens
         self.all_gens += [tuple(self.gens)]
         self.differential = self.rth_diff_on_gens(self.page)
-        print self.differential
-        self.all_differentials += [self.differential]
+        self.all_differentials.update(self.differential)
 
 
 
@@ -314,6 +334,7 @@ def main():
     gens_2 = [h10, h11, h12, h20**2, h21**2, h30**2, h20*h21 + h11*h30]
     relts = [h10*h11, h11*h12, h20*h12 + h21*h10]
     D.turn_page(map(D.parse_from_ring, gens_2), map(D.parse_from_ring, relts))
+    print {k.str_rep(): v.str_rep() for k, v in D.differential.items()}
 
 
 
