@@ -253,7 +253,6 @@ class Differential:
                 ret = []
                 for i in range(0, n + 1):
                     ret += [self.poly_prod(self.square_n(i, x), self.square_n(n - i, y))]
-                print reduce(self.poly_sum, ret).str_rep()
                 return reduce(self.poly_sum, ret)
         else:
             return reduce(self.poly_sum, map(lambda m: self.square_n(n, Polynomial([m])), poly.monomials))
@@ -335,6 +334,11 @@ def main():
     relts = [h10*h11, h11*h12, h20*h12 + h21*h10]
     D.turn_page(map(D.parse_from_ring, gens_2), map(D.parse_from_ring, relts))
     print {k.str_rep(): v.str_rep() for k, v in D.differential.items()}
+    # Note for future self: It seems like the b30 differential doesn't work.
+    # Seems like something to do with the squaring operations not operating correctly.
+    # jk - it actually has to do with degrees
+    # you should definitely implement that sometime
+    # Also, todo: differential for multi-term polynomial
 
 
 
