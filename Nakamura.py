@@ -8,6 +8,7 @@ from sage.all import *
 from functools import *
 from operator import attrgetter, methodcaller
 from copy import *
+from ss_mod2 import *
 
 
 class PolynomialException(Exception):
@@ -103,6 +104,13 @@ zero_m = Monomial([zero_v])
 zero_p = Polynomial([zero_m])
 
 
+def dict_map(f, d):
+    keys = d.keys()
+    out = {}
+    for key in keys:
+        out[f(key)] = f(d[key])
+    return out
+
 class Differential:
     # Initialize
     def __init__(self, ring, gens):
@@ -121,6 +129,10 @@ class Differential:
         self.all_differentials = self.differential
         # Relations (i.e. things quotiented by)
         self.relations = []
+        # Spectral Sequence Framework
+        d = dict_map(lambda p: p.name, self.differential)
+        names = map(lambda p: p.name, self.gens)
+        self.SS = SpectralSequence(names, tuple([1] * len(self.gens)), d)
 
 
     # Parses a list of (i, j) indices as Variables
@@ -314,14 +326,27 @@ class Differential:
         return d
 
 
-    def turn_page(self, gens, relations):
-        self.page += 1
-        self.relations += relations
-        self.square_term_differentials()
-        self.gens = gens
-        self.all_gens += [tuple(self.gens)]
-        self.differential = self.rth_diff_on_gens(self.page)
-        self.all_differentials.update(self.differential)
+    def turn_page(self):
+        r = self.SS.calculate_generators()
+        if r is None:
+            self.page += 1
+            self.differential = self.rth_diff_on_gens(self.page)
+            self.ss.turn_page()
+        else:
+            gens = r[0]
+            relts = r[1]
+            self.square_term_differentials()
+            self.relations += map(self.parse_from_ring, relts)
+            map(self.parse_from_ring, gens)
+            self.all_gens += [tuple(self.gens)]
+            self.differential = self.rth_diff_on_gens(self.page)
+            self.all_differentials.update(self.differential)
+            self.page += 1
+            gens = map(lambda p: p.name, self.gens)
+            degs = map(lambda p: p.s, self.gens)
+            relts = map(lambda p: p.name, self.relations)
+            diffs = dict_map(lambda p: p.name, self.differential)
+            self.SS.turn_page(gens, degs, relts, diffs)
 
 
 
@@ -330,10 +355,14 @@ def main():
     R.inject_variables()
     gens = [[[(1,0)]],[[(1,1)]],[[(1,2)]],[[(2,0)]],[[(2,1)]],[[(3,0)]]]
     D = Differential(R, gens)
-    gens_2 = [h10, h11, h12, h20**2, h21**2, h30**2, h20*h21 + h11*h30]
-    relts = [h10*h11, h11*h12, h20*h12 + h21*h10]
-    D.turn_page(map(D.parse_from_ring, gens_2), map(D.parse_from_ring, relts))
-    print {k.str_rep(): v.str_rep() for k, v in D.differential.items()}
+    D.turn_page()
+
+
+
+    # gens_2 = [h10, h11, h12, h20**2, h21**2, h30**2, h20*h21 + h11*h30]
+    # relts = [h10*h11, h11*h12, h20*h12 + h21*h10]
+    # D.turn_page(map(D.parse_from_ring, gens_2), map(D.parse_from_ring, relts))
+    # print {k.str_rep(): v.str_rep() for k, v in D.differential.items()}
     # Note for future self: It seems like the b30 differential doesn't work.
     # Seems like something to do with the squaring operations not operating correctly.
     # jk - it actually has to do with degrees
