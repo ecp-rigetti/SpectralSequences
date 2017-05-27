@@ -8,13 +8,11 @@ from sage.all import *
 from functools import *
 from operator import attrgetter, methodcaller
 from copy import *
-from ss_mod2 import *
+from SS_mod2 import *
 
 
 class PolynomialException(Exception):
     pass
-
-
 
 # Defines a class for a variable
 class Variable:
@@ -332,14 +330,11 @@ class Differential:
 
     def turn_page(self):
         r = self.SS.calculate_generators()
-        print r
         if r is None:
-            print "here"
             self.page += 1
             self.differential = self.rth_diff_on_gens(self.page)
             self.SS.turn_page()
         else:
-            print "there"
             gens = r[0]
             relts = r[1]
             self.square_term_differentials()
@@ -356,29 +351,13 @@ class Differential:
             self.SS.turn_page(gens, relts, diffs)
 
 
+# gens_2 = [h10, h11, h12, h20**2, h21**2, h30**2, h20*h21 + h11*h30]
+# relts = [h10*h11, h11*h12, h20*h12 + h21*h10]
+# D.turn_page(map(D.parse_from_ring, gens_2), map(D.parse_from_ring, relts))
+# print {k.str_rep(): v.str_rep() for k, v in D.differential.items()}
+# Note for future self: It seems like the b30 differential doesn't work.
+# Seems like something to do with the squaring operations not operating correctly.
+# jk - it actually has to do with degrees
+# you should definitely implement that sometime
+# Also, todo: differential for multi-term polynomial
 
-def main():
-    R = PolynomialRing(GF(2), 'h10,h11,h20')
-    R.inject_variables()
-    gens = [[[(1,0)]],[[(1,1)]],[[(2,0)]]]
-    D = Differential(R, gens)
-    D.turn_page()
-    D.turn_page()
-
-
-
-    # gens_2 = [h10, h11, h12, h20**2, h21**2, h30**2, h20*h21 + h11*h30]
-    # relts = [h10*h11, h11*h12, h20*h12 + h21*h10]
-    # D.turn_page(map(D.parse_from_ring, gens_2), map(D.parse_from_ring, relts))
-    # print {k.str_rep(): v.str_rep() for k, v in D.differential.items()}
-    # Note for future self: It seems like the b30 differential doesn't work.
-    # Seems like something to do with the squaring operations not operating correctly.
-    # jk - it actually has to do with degrees
-    # you should definitely implement that sometime
-    # Also, todo: differential for multi-term polynomial
-
-
-
-
-if __name__ == "__main__":
-    main()

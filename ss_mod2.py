@@ -443,16 +443,12 @@ class SpectralSequence:
         ker = self.kernel(m)
         ker.remove(1)
         b = self.boundaries(m)
-        print ker
-        print b
         g = map(lambda x: x**2 , list(self.ring_gens))
         ker += g
-        print ker
         G = ker + b
         # We begin by addressing the kernel
         while True:
             for i in range(0, len(ker)):
-                print ker
                 p = 0
                 q = 0
                 v = ker[i]
@@ -460,11 +456,10 @@ class SpectralSequence:
                     while True:
                         lm_v = v.lm()
                         r = self.covering_ring.monomial_reduce(lm_v, G[:i] + G[i + 1:])
-                        print r
                         if r == (0, 0):
                             break
                         # This is where it's broken
-                        elif self.covering_ring.monomial_reduce(r[0], ker)[0] != 0:
+                        elif self.covering_ring.monomial_reduce(r[0], ker) == (0, 0):
                             break
                         else:
                             v -= (r[0] * r[1])
