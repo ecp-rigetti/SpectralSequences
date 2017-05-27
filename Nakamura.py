@@ -337,7 +337,7 @@ class Differential:
             print "here"
             self.page += 1
             self.differential = self.rth_diff_on_gens(self.page)
-            self.ss.turn_page()
+            self.SS.turn_page()
         else:
             print "there"
             gens = r[0]
@@ -362,7 +362,6 @@ def main():
     R.inject_variables()
     gens = [[[(1,0)]],[[(1,1)]],[[(2,0)]]]
     D = Differential(R, gens)
-    D.turn_page()
     D.turn_page()
     D.turn_page()
 
