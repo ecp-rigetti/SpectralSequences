@@ -26,15 +26,18 @@ class SpectralSequence:
     def __init__(self, gens, degrees, diff):
         self.page = 1
         self.char = 2
-        A = self.define_algebra(gens, degrees)
-        self.covering_ring = self.polynomial_ring_of(A)
+        self.A = self.define_algebra(gens, degrees)
+        self.covering_ring = self.polynomial_ring_of(self.A)
+        self.cover_gens = self.covering_ring.gens()
         self.relations = []
         self.base_quotient_ring = self.covering_ring.quotient(self.relations)
+        self.quotient_gens = self.base_quotient_ring.gens()
         self.cover = lambda x: x
         self.lift = lambda x: x
-        self.differential = self.parse_diffs(A, diff)
-        self.CDGA = self.define_cdga(A, self.differential)
-        self.gencombs = self.gen_combs(A)
+        self.differential = self.parse_diffs(self.A, diff)
+        self.CDGA = self.define_cdga(self.A, self.differential)
+        self.cdga_gens = self.CDGA.gens()
+        self.gencombs = self.nonalgebra_gen_combs(self.A.gens())
         # Just a simple placeholder for var names
         self.n = 0
         print "Placeholder for the page info declaration"
@@ -137,6 +140,18 @@ class SpectralSequence:
         l = len(t)
         for i in range(1, l + 1):
             p += itertools.combinations(t, i)
+        def mult(tup):
+            if len(tup) > 1:
+                return tup[0] * mult(tup[1:])
+            else:
+                return tup[0]
+        return map(mult, p)
+
+    def nonalgebra_gen_combs(self, gens):
+        p = [(1,)]
+        l = len(gens)
+        for i in range(1, l + 1):
+            p += itertools.combinations(gens, i)
         def mult(tup):
             if len(tup) > 1:
                 return tup[0] * mult(tup[1:])
@@ -259,7 +274,7 @@ class SpectralSequence:
 
     """
     def ap_differential(self, A):
-        lst = self.gen_combs(A)
+        lst = self.gencombs
         res = {}
         t = A.gens()
         d = A.differential()
@@ -303,7 +318,7 @@ class SpectralSequence:
 
     """
     def ap_differential_matrix(self, A):
-        lst = self.gen_combs(A)
+        lst = self.gencombs
         length = len(lst)
         d = self.ap_differential(A)
         outputs = []
@@ -340,10 +355,12 @@ class SpectralSequence:
         # I = macaulay2.get('I')
         I = macaulay2('I').to_sage()
         # print I.str()
-        gens = vector(self.gen_combs(self.covering_ring))
+        self.silence_task(self.covering_ring.inject_variables)
+        gencombs = map(lambda g: eval(self.special_str(g)), self.gencombs)
+        gens = vector(gencombs)
         columns = I.columns()
         res = map(lambda c: gens.dot_product(c), columns)
-        return map(lambda c: self.cover(c), res)
+        return map(lambda c: self.lift(c), res)
 
     # Generates boundaries of the differential
     def boundaries(self, m):
@@ -355,19 +372,21 @@ class SpectralSequence:
         macaulay2.set('Q', 'R / ' + f(str(self.relations)))
         macaulay2.set('i', 'gens trim image matrix (Q,' + lm + ')')
         i = macaulay2('i').to_sage()
-        gens = vector(self.gen_combs(self.covering_ring))
+        self.silence_task(self.covering_ring.inject_variables)
+        gencombs = map(lambda g: eval(self.special_str(g)), self.gencombs)
+        gens = vector(gencombs)
         columns = i.columns()
         res = map(lambda c: gens.dot_product(c), columns)
-        return map(lambda c: self.cover(c), res)
+        return map(lambda c: self.lift(c), res)
 
     # Does some weird polynomial reduction on the list of kernel elements mod
     # the kernel and boundary elements to magically produce a multiplicative
     # generating set for the kernel (?)
     # Maybe I should separate (abstract) out the reduction step to clean up code?
-    def reduction_step(self):
-        ker = self.kernel()[1:]
-        b = self.boundaries()
-        g = map(lambda x: x**2 , list(self.base_quotient_ring.gens()))
+    def reduction_step(self, m):
+        ker = self.kernel(m)[1:]
+        b = self.boundaries(m)
+        g = map(lambda x: x**2 , list(self.covering_ring.gens()))
         ker += g
         G = ker + b
         # We begin by addressing the kernel
@@ -379,7 +398,7 @@ class SpectralSequence:
                 while True:
                     while True:
                         lm_v = v.lm()
-                        r = self.base_quotient_ring.monomial_reduce(lm_v, G[:i] + G[i + 1:])
+                        r = self.covering_ring.monomial_reduce(lm_v, G[:i] + G[i + 1:])
                         if r == (0, 0):
                             break
                         else:
@@ -402,7 +421,7 @@ class SpectralSequence:
                     break
             else:
                 break
-        reduced_kernel = map(lambda c: self.lift(c), ker)
+        reduced_kernel = map(lambda c: self.lift(self.cover(c)), ker)
         # Now we address the boundaries
         while True:
             for i in range(0, len(b)):
@@ -412,7 +431,7 @@ class SpectralSequence:
                 while True:
                     while True:
                         lm_v = v.lm()
-                        r = self.base_quotient_ring.monomial_reduce(lm_v, b[:i] + b[i + 1:])
+                        r = self.covering_ring.monomial_reduce(lm_v, b[:i] + b[i + 1:])
                         if r == (0, 0):
                             break
                         else:
@@ -429,39 +448,48 @@ class SpectralSequence:
                     break
             else:
                 break
-        reduced_boundaries = map(lambda b: self.lift(b), b)
+        reduced_boundaries = map(lambda b: self.lift(self.cover(b)), b)
         return (reduced_kernel, reduced_boundaries)
+
+    # Helper function for defining a new string for generator placeholders in the algebra
+    def new_varname(self):
+        return 'var' + str(self.n += 1)
 
     # This is where the magic happens
     def calculate_generators(self):
-        # Make sure to filter differential dictionary to only nonzero diffs
-        m = self.ap_differential_matrix(self.CDGA)
-        if self.differential is not {}:
-            return self.reduction_step(m)
-        else:
+        # Make sure to filter differential dictionary to only nonzero diffs beforehand
+        dic = self.CDGA.differential()._dic_
+        if all(v == 0 for v in dic.values()) or dic is {}:
             return None
+        else:
+            m = self.ap_differential_matrix(self.CDGA)
+            return self.reduction_step(m)
 
-    # Gives you a fresh variable name
-    def new_varname(self):
-        self.n += 1
-        return 'var{}'.format(self.n)
-
-
-    def turn_page(self, gens=None, degs=None, relts=None, diffs=None):
+    def turn_page(self, gens=None, relts=None, diffs=None):
         # This only happens when we have no differentials on a given page
-        if gens is None or degs is None or relts is None or diffs is None:
+        print gens
+        print relts
+        print diffs
+        if gens is None or relts is None or diffs is None:
             self.page += 1
         else:
             self.page += 1
-            new_gen_names = tuple([self.new_varname() for gen in gens])
-            A = self.define_algebra(gens, degs)
-            self.covering_ring = self.polynomial_ring_of(A)
-            self.relations = []
-            self.base_quotient_ring = self.covering_ring.quotient(self.relations)
-            self.cover = lambda x: x
-            self.lift = lambda x: x
-            self.differential = self.parse_diffs(A, diff)
+            differential = self.parse_diffs(self.A, diffs)
+            var_mapping = {}
+            for key in differential:
+                if key not in A.gens():
+                    var_mapping[str(key)] = (self.new_varname(), differential[key].degree() - 1)
+            A = self.define_algebra()
             self.CDGA = self.define_cdga(A, self.differential)
-            self.gencombs = self.gen_combs(A)
+            print self.CDGA
+            self.silence_task(self.CDGA.inject_variables)
+            self.gencombs = self.nonalgebra_gen_combs(map(eval, gens))
+            self.silence_task(self.covering_ring.inject_variables)
+            self.relations += map(eval, relts)
+            self.base_quotient_ring = self.covering_ring.quotient(self.relations)
+            self.cover = self.base_quotient_ring.cover()
+            self.lift = self.base_quotient_ring.lift()
+            print self.differential
+            # Whew.
 
 

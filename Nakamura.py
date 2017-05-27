@@ -133,7 +133,12 @@ class Differential:
         d = dict_map(lambda p: p.name, self.differential)
         names = map(lambda p: p.name, self.gens)
         self.SS = SpectralSequence(names, tuple([1] * len(self.gens)), d)
+        self.print_everything()
 
+    def print_everything(self):
+        print 'Page: ' + str(self.page)
+        print 'Generators ' + str(map(lambda p: p.name, self.gens))
+        print 'Relations ' + str(map(lambda p: p.name, self.relations))
 
     # Parses a list of (i, j) indices as Variables
     def parse_to_vars(self, indices):
@@ -325,36 +330,40 @@ class Differential:
             d[self.gens[i]] = output[i]
         return d
 
-
     def turn_page(self):
         r = self.SS.calculate_generators()
+        print r
         if r is None:
+            print "here"
             self.page += 1
             self.differential = self.rth_diff_on_gens(self.page)
             self.ss.turn_page()
         else:
+            print "there"
             gens = r[0]
             relts = r[1]
             self.square_term_differentials()
             self.relations += map(self.parse_from_ring, relts)
-            map(self.parse_from_ring, gens)
+            self.gens = map(self.parse_from_ring, gens)
             self.all_gens += [tuple(self.gens)]
             self.differential = self.rth_diff_on_gens(self.page)
             self.all_differentials.update(self.differential)
             self.page += 1
+            self.print_everything()
             gens = map(lambda p: p.name, self.gens)
-            degs = map(lambda p: p.s, self.gens)
             relts = map(lambda p: p.name, self.relations)
             diffs = dict_map(lambda p: p.name, self.differential)
-            self.SS.turn_page(gens, degs, relts, diffs)
+            self.SS.turn_page(gens, relts, diffs)
 
 
 
 def main():
-    R = PolynomialRing(GF(2), 'h10,h11,h12,h20,h21,h30')
+    R = PolynomialRing(GF(2), 'h10,h11,h20')
     R.inject_variables()
-    gens = [[[(1,0)]],[[(1,1)]],[[(1,2)]],[[(2,0)]],[[(2,1)]],[[(3,0)]]]
+    gens = [[[(1,0)]],[[(1,1)]],[[(2,0)]]]
     D = Differential(R, gens)
+    D.turn_page()
+    D.turn_page()
     D.turn_page()
 
 
