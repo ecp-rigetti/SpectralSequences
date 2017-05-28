@@ -135,8 +135,8 @@ class Differential:
 
     def print_everything(self):
         print 'Page: ' + str(self.page)
-        print 'Generators ' + str(map(lambda p: p.name, self.gens))
-        print 'Relations ' + str(map(lambda p: p.name, self.relations))
+        print 'Generators ' + str(map(lambda p: self.parse_in_ring(p), self.gens))
+        print 'Relations ' + str(map(lambda p: self.parse_in_ring(p), self.relations))
 
     # Parses a list of (i, j) indices as Variables
     def parse_to_vars(self, indices):
@@ -317,11 +317,25 @@ class Differential:
                 print "You're basically screwed"
             else:
                 # Not yet implemented
-                return zero_p
+                return self.parse_from_ring(h10*h12**2)
 
     def rth_diff_on_gens(self, r):
         def diff(gen):
-            return self.rth_diff(r, gen)
+            s, t, u = gen.s, gen.t, gen.u
+            d = self.rth_diff(r, gen)
+            m = None
+            print d.name
+            print map(lambda x: x.name, d.monomials)
+            if d is not zero_p:
+                m = filter(lambda m: m.s == s + 1 and m.t == t and m.u == u + 1 - r, d.monomials)
+                if m == []:
+                    return zero_p
+                else:
+                    return Polynomial(m)
+            else:
+                return zero_p
+
+        print map(lambda x: x.name, self.gens)
         output = map(diff, self.gens)
         d = {}
         for i in range(0, len(output)):
@@ -337,13 +351,15 @@ class Differential:
         else:
             gens = r[0]
             relts = r[1]
+            print gens
+            print relts
+            self.page += 1
             self.square_term_differentials()
             self.relations += map(self.parse_from_ring, relts)
             self.gens = map(self.parse_from_ring, gens)
             self.all_gens += [tuple(self.gens)]
             self.differential = self.rth_diff_on_gens(self.page)
             self.all_differentials.update(self.differential)
-            self.page += 1
             self.print_everything()
             gens = map(lambda p: p.name, self.gens)
             relts = map(lambda p: p.name, self.relations)

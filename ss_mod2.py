@@ -30,6 +30,8 @@ class SpectralSequence:
         self.algebra_str_gens = map(str, self.A.gens())
         self.covering_ring = self.polynomial_ring_of(self.A)
         self.cover_gens = self.covering_ring.gens()
+        self.var_mapping = {}
+        self.reverse_mapping = {}
         self.relations = []
         self.base_quotient_ring = self.covering_ring.quotient(self.relations)
         self.quotient_gens = self.base_quotient_ring.gens()
@@ -239,11 +241,14 @@ class SpectralSequence:
         # print 'term ' + str(term)
         gens = map(lambda c: c**p, self.ring_gens)
         gens = map(self.special_str, gens)
-        term = self.special_str(term)
         R = self.base_quotient_ring
         self.silence_task(self.covering_ring.inject_variables)
         self.silence_task(R.inject_variables)
         one = self.covering_ring.one()
+        term = self.special_str(term)
+        for key in self.reverse_mapping:
+            term = term.replace(key, '(' + self.reverse_mapping[key] + ')')
+        term = self.special_str(eval(term))
         terms = term.split('+')
         terms = map(eval, terms)
         terms = map(self.lift, terms)
@@ -441,6 +446,7 @@ class SpectralSequence:
     # Nah.
     def reduction_step(self, m):
         ker = self.kernel(m)
+        print ker
         ker.remove(1)
         b = self.boundaries(m)
         g = map(lambda x: x**2 , list(self.ring_gens))
@@ -458,15 +464,19 @@ class SpectralSequence:
                         r = self.covering_ring.monomial_reduce(lm_v, G[:i] + G[i + 1:])
                         if r == (0, 0):
                             break
-                        # This is where it's broken
-                        elif self.covering_ring.monomial_reduce(r[0], ker) == (0, 0):
-                            break
                         else:
                             v -= (r[0] * r[1])
                             # It seems that if we can't completely reduce it, we don't want
                             # to reduce it at all (for generating reasons? idk)
                             # So we save this just in case p != 0, to add back in
                             q += (r[0] * r[1])
+                        # This is where it's broken
+                        """
+                        elif self.covering_ring.monomial_reduce(r[0], G) == (0, 0):
+                            print r[0]
+                            break
+                        """
+
                     p += v.lm()
                     v -= v.lm()
                     if v == 0:
@@ -528,49 +538,52 @@ class SpectralSequence:
             return self.reduction_step(m)
 
     def turn_page(self, gens=None, relts=None, diffs=None):
-        # This only happens when we have no differentials on a given page
+        self.page += 1
+        print diffs
         if gens is None or relts is None or diffs is None:
-            self.page += 1
-        else:
-            self.page += 1
-            var_mapping = {}
-            self.silence_task(self.CDGA.inject_variables)
-            if all(val == '0' for val in diffs.values()):
-                return
-            for key in diffs:
-                if key in map(str, self.A.gens()):
-                    var_mapping[key] = (key, 1)
-                else:
-                    var_mapping[key] = (self.new_varname(), eval(diffs[key]).degree() - 1)
-            # print var_mapping
-            vals = var_mapping.values()
-            placeholder_gens = map(str, self.A.gens())
-            placeholder_degs = [1] * len(self.A.gens())
-            for elt in vals:
-                if elt[0] in placeholder_gens:
-                    continue
-                else:
-                    placeholder_gens += [elt[0]]
-                    placeholder_degs += [elt[1]]
-            # print placeholder_gens
-            # print placeholder_degs
-            A = self.define_algebra(placeholder_gens, tuple(placeholder_degs))
-            # print diffs
-            placeholder_diffs = {var_mapping[k][0]: v for (k, v) in diffs.items()}
-            # print 'placeholder' + str(placeholder_diffs)
-            differential = self.parse_diffs(A, placeholder_diffs)
-            # print diffs
-            # print differential
-            self.CDGA = self.define_cdga(A, differential)
-            self.silence_task(self.CDGA.inject_variables)
-            self.placeholder_gencombs = self.nonalgebra_gen_combs(map(eval, [var_mapping[g][0] for g in gens]))
-            self.silence_task(self.covering_ring.inject_variables)
-            self.ring_gens = map(eval, gens)
-            self.ring_gencombs = self.nonalgebra_gen_combs(self.ring_gens)
-            self.relations += map(eval, relts)
-            self.base_quotient_ring = self.covering_ring.quotient(self.relations)
-            self.cover = self.base_quotient_ring.cover()
-            self.lift = self.base_quotient_ring.lift()
+            # This only happens when we have no differentials on a given page
+            return
+        var_mapping = {}
+
+        self.silence_task(self.CDGA.inject_variables)
+        if all(val == '0' for val in diffs.values()):
+            return
+        for key in diffs:
+            if key in map(str, self.A.gens()):
+                var_mapping[key] = (key, 1)
+            else:
+                var_mapping[key] = (self.new_varname(), eval(key).degree())
+        # print var_mapping
+        self.var_mapping = var_mapping
+        self.reverse_mapping = {v[0]: k for (k, v) in self.var_mapping.items()}
+        vals = self.var_mapping.values()
+        placeholder_gens = map(str, self.A.gens())
+        placeholder_degs = [1] * len(self.A.gens())
+        for elt in vals:
+            if elt[0] in placeholder_gens:
+                continue
+            else:
+                placeholder_gens += [elt[0]]
+                placeholder_degs += [elt[1]]
+        # print placeholder_gens
+        # print placeholder_degs
+        A = self.define_algebra(placeholder_gens, tuple(placeholder_degs))
+        # print diffs
+        placeholder_diffs = {var_mapping[k][0]: v for (k, v) in diffs.items()}
+        # print 'placeholder' + str(placeholder_diffs)
+        differential = self.parse_diffs(A, placeholder_diffs)
+        # print diffs
+        # print differential
+        self.CDGA = self.define_cdga(A, differential)
+        self.silence_task(self.CDGA.inject_variables)
+        self.placeholder_gencombs = self.nonalgebra_gen_combs(map(eval, [var_mapping[g][0] for g in gens]))
+        self.silence_task(self.covering_ring.inject_variables)
+        self.ring_gens = map(eval, gens)
+        self.ring_gencombs = self.nonalgebra_gen_combs(self.ring_gens)
+        self.relations += map(eval, relts)
+        self.base_quotient_ring = self.covering_ring.quotient(self.relations)
+        self.cover = self.base_quotient_ring.cover()
+        self.lift = self.base_quotient_ring.lift()
             # Whew.
 
 

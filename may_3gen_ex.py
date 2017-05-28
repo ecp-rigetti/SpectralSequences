@@ -7,7 +7,11 @@ def main():
     D = Differential(R, gens)
     D.turn_page()
     D.turn_page()
-    D.turn_page()
 
 if __name__ == "__main__":
     main()
+
+"""
+For some reason the last relation (h11^3) keeps adding to relations
+
+"""
