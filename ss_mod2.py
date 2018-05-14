@@ -386,7 +386,9 @@ class SpectralSequence:
     # Polynomial matrix kernels, brought to you by the magic of syzygies!
     def kernel(self, m):
         lm = list(m)
+        print lm
         lm = map(lambda x: Ideal(list(x)).syzygy_module().transpose(), lm)
+        print lm
         lm = map(list, lm)
         lm = map(lambda x: map(list, x), lm)
         f = lambda lst: str(lst).replace('[', '{').replace(']','}')
@@ -404,14 +406,21 @@ class SpectralSequence:
         # I = macaulay2('I').to_sage()
         I = str(macaulay2.get('I'))
         m = self.parse_M2_matrix(I)
+
         self.silence_task(self.covering_ring.inject_variables)
         m = map(lambda l: map(lambda elt: eval(self.str_M2_parse(elt)), l), m)
         I = matrix(self.covering_ring, m)
+        print 'mat'
+        print I
+        #print I.str()
         # gencombs = map(lambda g: eval(self.special_str(g)), self.gencombs)
         gens = vector(self.ring_gencombs)
         columns = I.columns()
+        print gens
         res = map(lambda c: gens.dot_product(c), columns)
+        print res
         res = map(lambda c: self.lift(c), res)
+        print res
         return [x for x in res if x != 0]
 
     # Generates boundaries of the differential
@@ -446,9 +455,11 @@ class SpectralSequence:
     # Nah.
     def reduction_step(self, m):
         ker = self.kernel(m)
+        print 'ker'
         print ker
         ker.remove(1)
         b = self.boundaries(m)
+        print b
         g = map(lambda x: x**2 , list(self.ring_gens))
         ker += g
         G = ker + b
@@ -554,6 +565,7 @@ class SpectralSequence:
             else:
                 var_mapping[key] = (self.new_varname(), eval(key).degree())
         # print var_mapping
+        # print 'var_mapping' + str(var_mapping)
         self.var_mapping = var_mapping
         self.reverse_mapping = {v[0]: k for (k, v) in self.var_mapping.items()}
         vals = self.var_mapping.values()
@@ -577,9 +589,11 @@ class SpectralSequence:
         self.CDGA = self.define_cdga(A, differential)
         self.silence_task(self.CDGA.inject_variables)
         self.placeholder_gencombs = self.nonalgebra_gen_combs(map(eval, [var_mapping[g][0] for g in gens]))
+        # print self.placeholder_gencombs
         self.silence_task(self.covering_ring.inject_variables)
         self.ring_gens = map(eval, gens)
         self.ring_gencombs = self.nonalgebra_gen_combs(self.ring_gens)
+        # print self.ring_gencombs
         self.relations += map(eval, relts)
         self.base_quotient_ring = self.covering_ring.quotient(self.relations)
         self.cover = self.base_quotient_ring.cover()

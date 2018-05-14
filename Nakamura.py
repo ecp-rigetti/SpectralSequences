@@ -324,8 +324,8 @@ class Differential:
             s, t, u = gen.s, gen.t, gen.u
             d = self.rth_diff(r, gen)
             m = None
-            print d.name
-            print map(lambda x: x.name, d.monomials)
+            #print d.name
+            #print map(lambda x: x.name, d.monomials)
             if d is not zero_p:
                 m = filter(lambda m: m.s == s + 1 and m.t == t and m.u == u + 1 - r, d.monomials)
                 if m == []:
@@ -335,7 +335,7 @@ class Differential:
             else:
                 return zero_p
 
-        print map(lambda x: x.name, self.gens)
+        #print map(lambda x: x.name, self.gens)
         output = map(diff, self.gens)
         d = {}
         for i in range(0, len(output)):
@@ -351,8 +351,8 @@ class Differential:
         else:
             gens = r[0]
             relts = r[1]
-            print gens
-            print relts
+            #print gens
+            #print relts
             self.page += 1
             self.square_term_differentials()
             self.relations += map(self.parse_from_ring, relts)

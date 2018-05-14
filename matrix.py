@@ -196,30 +196,43 @@ def main():
     # M = Matrix(R, m)
     # print M.matrix
     # print "\n"
-    # print M.syzygy_kernel_test()
-    h10 = Variable('h10', 1, 0)
-    h11 = Variable('h11', 1, 1)
-    h12 = Variable('h12', 1, 2)
-    h20 = Variable('h20', 2, 0)
-    h21 = Variable('h21', 2, 1)
-    h30 = Variable('h30', 3, 0)
-    gens = [h10,h11,h12,h20,h21,h30]
-    A = define_algebra(2, gens, (1,1,1,1,1,1))
-    d = first_diff(gens)
-    d = parse_diffs(A,d)
-    B = define_cdga(A,d)
+    # # print M.syzygy_kernel_test()
+    # h10 = Variable('h10', 1, 0)
+    # h11 = Variable('h11', 1, 1)
+    # h12 = Variable('h12', 1, 2)
+    # h20 = Variable('h20', 2, 0)
+    # h21 = Variable('h21', 2, 1)
+    # h30 = Variable('h30', 3, 0)
+    # gens = [h10,h11,h12,h20,h21,h30]
+    # A = define_algebra(2, gens, (1,1,1,1,1,1))
+    # d = first_diff(gens)
+    # d = parse_diffs(A,d)
+    # B = define_cdga(A,d)
+    # m = ap_differential_matrix(B)
+    # # print_ap_differential_matrix(B)
+    # R = polynomial_ring_of(A)
+    # R.inject_variables()
+    # m = map(lambda x: map(lambda y: eval(special_str(y)), x), m)
+    # M = Matrix(R,m,B)
+    # m = M.matrix
+
+    # # a = M.syzygy_kernel_test()
+    # # hopefully_zero = m * a
+    # # print hopefully_zero.str()
+    # # print M.reduce()
+    # print M.bounds_reduce()
+    A = GradedCommutativeAlgebra(GF(2), 'y1,y2,y3,y4', degrees=(1,1,1,1))
+    A.inject_variables()
+    B = A.cdg_algebra({y1: y4**2, y2: y3*y4})
     m = ap_differential_matrix(B)
-    # print_ap_differential_matrix(B)
-    R = polynomial_ring_of(A)
+
+    R = PolynomialRing(GF(2), 'y1,y2,y3,y4')
     R.inject_variables()
     m = map(lambda x: map(lambda y: eval(special_str(y)), x), m)
-    M = Matrix(R,m,B)
+    M = Matrix(R, m, B)
     m = M.matrix
-
-    # a = M.syzygy_kernel_test()
-    # hopefully_zero = m * a
-    # print hopefully_zero.str()
-    # print M.reduce()
+    print(m)
+    print M.reduce()
     print M.bounds_reduce()
 
 
