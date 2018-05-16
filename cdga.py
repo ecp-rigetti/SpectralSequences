@@ -11,7 +11,7 @@ class CDGA_char2:
     generators writen as list of strings, degrees as tuple
     differential as string dict
     """
-    def __init__(self, gens, diff, degrees=None):
+    def __init__(self, gens, diff, degrees=None, relations=None):
         #specify ring definition
         self.p = 2
         self.R = PolynomialRing(GF(2), gens)
@@ -22,6 +22,11 @@ class CDGA_char2:
             self.degrees = degrees
         #define the differential
         self.R.inject_variables()
+        if relations == None:
+            self.QR = None
+        else:
+            relts = [self.R(relt) for relt in relations]
+            self.QR = self.R.quotient(relts)
         differential = {}
         for gen in self.R.gens():
             differential[gen] = self.R.zero()
@@ -79,7 +84,7 @@ class CDGA_char2:
                     res += coef*v1*v2 #semi-neglected coefficient?
                     coef *= x.parent().gen(idx)**exp
                 idx += 1
-        return res
+        return self.QR.lift(res)
 
     # all k-combinations of generators
     def gen_combs(self):
@@ -175,16 +180,107 @@ class CDGA_char2:
         cycles = []
         for col in N.columns():
             cycles.append(gen_combs.dot_product(vector(col)))
-        return cycles
+        return filter(lambda c: not c.is_zero(), map(lambda c: self.QR.lift(c), cycles))
 
+    # calculates boundaries (image) of CDGA differential
+    def boundaries(self):
+        gen_combs = vector(self.gen_combs())
+        m = self.ap_differential_matrix().columns()
+        boundaries = []
+        for col in m:
+            boundaries.append(gen_combs.dot_product(vector(col)))
+        return filter(lambda b: not b.is_zero(), map(lambda b: self.QR.lift(b), boundaries))
 
+    # Does some weird polynomial reduction on the list of kernel elements mod
+    # the kernel and boundary elements to magically produce a multiplicative
+    # generating set for the cycles and boundaries
+    # Maybe I should separate (abstract) out the reduction step to clean up code?
+    # Nah.
+    # I might have once known how this works; I no longer do.
+    def reduction_step(self):
+        ker = self.cycles()
+        ker.remove(1)
+        ker = filter(lambda x: not x.is_zero(), ker)
+        b = self.boundaries()
+        b = filter(lambda x: not x.is_zero(), b)
+        g = map(lambda x: x**2 , self.R.gens())
+        ker += g
+        G = ker + b
+        # We begin by addressing the kernel
+        while True:
+            for i in range(0, len(ker)):
+                p = 0
+                q = 0
+                v = ker[i]
+                while True:
+                    while True:
+                        v = self.R(v)
+                        lm_v = v.lm()
+                        r = self.R.monomial_reduce(lm_v, G[:i] + G[i + 1:])
+                        print r
+                        if r == (0, 0):
+                            break
+                        elif self.R.monomial_reduce(r[0], ker) == (0, 0): # how the hell does this work???
+                            break
+                        else:
+                            v -= (r[0] * r[1])
+                            # It seems that if we can't completely reduce it, we don't want
+                            # to reduce it at all (for generating reasons? idk)
+                            # So we save this just in case p != 0, to add back in
+                            q += (r[0] * r[1])
+
+                    p += v.lm()
+                    v -= v.lm()
+                    if v == 0:
+                        break
+                # I don't think this if case actually does anything
+                if p != 0:
+                    ker[i] = p + q
+                    G[i] = p
+                else:
+                    del ker[i]
+                    del G[i]
+                    break
+            else:
+                break
+        reduced_kernel = ker # map(lambda c: self.lift(self.cover(c)), ker)
+        # Now we address the boundaries
+        while True:
+            for i in range(0, len(b)):
+                p = 0
+                q = 0
+                v = b[i]
+                while True:
+                    while True:
+                        v = self.R(v)
+                        lm_v = v.lm()
+                        r = self.R.monomial_reduce(lm_v, b[:i] + b[i + 1:])
+                        if r == (0, 0):
+                            break
+                        else:
+                            v -= (r[0] * r[1])
+                            q += (r[0] * r[1])
+                    p += v.lm()
+                    v -= v.lm()
+                    if v == 0:
+                        break
+                if p != 0:
+                    b[i] = p + q
+                else:
+                    del b[i]
+                    break
+            else:
+                break
+        reduced_boundaries = b # map(lambda b: self.lift(self.cover(b)), b)
+        return (reduced_kernel, reduced_boundaries)
 
 
 
 def main():
-    A = CDGA_char2(gens='x, y', degrees=(1, 2) ,diff={'x':'y'})
+    A = CDGA_char2(gens='h0, h1, b20', degrees=(1, 1, 2), diff={'b20':'h1**3'}, relations = ['h0*h1'])
     print A.cycles()
-    #print A.module_intersection([x1,x2], [x1**2-x2**2,x1*x2*x3,x3**2-x1])
+    print A.boundaries()
+    print A.reduction_step()
 
 
 if __name__ == "__main__":

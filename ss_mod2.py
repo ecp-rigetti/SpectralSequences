@@ -386,9 +386,7 @@ class SpectralSequence:
     # Polynomial matrix kernels, brought to you by the magic of syzygies!
     def kernel(self, m):
         lm = list(m)
-        print lm
         lm = map(lambda x: Ideal(list(x)).syzygy_module().transpose(), lm)
-        print lm
         lm = map(list, lm)
         lm = map(lambda x: map(list, x), lm)
         f = lambda lst: str(lst).replace('[', '{').replace(']','}')
@@ -410,17 +408,12 @@ class SpectralSequence:
         self.silence_task(self.covering_ring.inject_variables)
         m = map(lambda l: map(lambda elt: eval(self.str_M2_parse(elt)), l), m)
         I = matrix(self.covering_ring, m)
-        print 'mat'
-        print I
         #print I.str()
         # gencombs = map(lambda g: eval(self.special_str(g)), self.gencombs)
         gens = vector(self.ring_gencombs)
         columns = I.columns()
-        print gens
         res = map(lambda c: gens.dot_product(c), columns)
-        print res
         res = map(lambda c: self.lift(c), res)
-        print res
         return [x for x in res if x != 0]
 
     # Generates boundaries of the differential
@@ -455,11 +448,8 @@ class SpectralSequence:
     # Nah.
     def reduction_step(self, m):
         ker = self.kernel(m)
-        print 'ker'
-        print ker
         ker.remove(1)
         b = self.boundaries(m)
-        print b
         g = map(lambda x: x**2 , list(self.ring_gens))
         ker += g
         G = ker + b
