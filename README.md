@@ -27,3 +27,7 @@ Sage (http://www.sagemath.org/)
 (old dependency: Macaulay2 (http://www.math.uiuc.edu/Macaulay2/))
 
 Run python files by invoking python with sage ($ sage -python *.py)
+
+##TODO:
+
+fix up the documentation (old code is pretty well documented, need to update for new code)
