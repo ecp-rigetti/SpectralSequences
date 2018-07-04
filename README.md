@@ -11,6 +11,9 @@ At various points in development, the project has gotten pretty close to success
 I'll be continuing to think about this project in the future; in the meantime, if you stumble upon this and (a) it could be of use to you and your research, or (b) you have any insights into how one might enact a reduction to a minimal multiplicative generating set, please feel free to reach out.
 
 
+## TODO:
+fix up the documentation (old code is pretty well documented, need to update for new code)
+
 ## Code:
 
 New code (with a purpose-built "CDGA" class) is found in the new folder
@@ -25,9 +28,4 @@ Both of them work to varying degrees, but they have the same issue with the fina
 Sage (http://www.sagemath.org/)
 
 (old dependency: Macaulay2 (http://www.math.uiuc.edu/Macaulay2/))
-
 Run python files by invoking python with sage ($ sage -python *.py)
-
-##TODO:
-
-fix up the documentation (old code is pretty well documented, need to update for new code)
